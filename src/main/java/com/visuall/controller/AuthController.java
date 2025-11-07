@@ -1,11 +1,7 @@
 package com.visuall.controller;
 
 import com.visuall.service.AuthService;
-import com.visuall.model.dto.LoginRequest;
-import com.visuall.model.dto.RegisterRequest;
-import com.visuall.model.dto.AuthResponse;
-import com.visuall.exception.BusinessException;
-
+import com.visuall.model.dto.*;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -23,9 +19,10 @@ public class AuthController {
     @Path("/login")
     public Response login(LoginRequest request) {
         try {
-            AuthResponse response = authService.login(request.getCpf(), request.getSenha());
+            // Corrigido: usando getEmail() e getSenha()
+            AuthResponse response = authService.login(request.getEmail(), request.getSenha());
             return Response.ok(response).build();
-        } catch (BusinessException e) {
+        } catch (Exception e) {
             return Response.status(401).entity(new ErrorResponse(e.getMessage())).build();
         }
     }
@@ -34,13 +31,14 @@ public class AuthController {
     @Path("/register")
     public Response register(RegisterRequest request) {
         try {
+            // Corrigido: usando getNome(), getEmail() e getSenha()
             AuthResponse response = authService.register(
-                    request.getCpf(),
-                    request.getSenha(),
-                    request.getIdPaciente()
+                    request.getNome(),
+                    request.getEmail(),
+                    request.getSenha()
             );
             return Response.status(201).entity(response).build();
-        } catch (BusinessException e) {
+        } catch (Exception e) {
             return Response.status(400).entity(new ErrorResponse(e.getMessage())).build();
         }
     }

@@ -1,11 +1,9 @@
 package com.visuall.service;
 
-import com.visuall.dao.PacienteDAO;
-import com.visuall.model.Paciente;
+import com.visuall.dao.UsuarioDAO;
+import com.visuall.model.Usuario;
 import com.visuall.model.dto.AuthResponse;
 import com.visuall.model.dto.UserDTO;
-import com.visuall.exception.BusinessException;
-
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.util.UUID;
@@ -14,83 +12,86 @@ import java.util.UUID;
 public class AuthService {
 
     @Inject
-    PacienteDAO pacienteDAO;
+    UsuarioDAO usuarioDAO;
 
-    public AuthResponse login(String cpf, String senha) { // CORRIGIDO: "semha" → "senha"
-        // 1. Validar campos
-        if (cpf == null || cpf.trim().isEmpty()) {
-            throw new BusinessException("CPF é obrigatório");
-        }
-        if (senha == null || senha.trim().isEmpty()) {
-            throw new BusinessException("Senha é obrigatória");
-        }
+    public AuthResponse login(String email, String senha) {
+        // Buscar usuário por email
+        Usuario usuario = usuarioDAO.findByEmail(email);
 
-        // 2. Buscar paciente no banco
-        Paciente paciente = pacienteDAO.findByCpf(cpf);
-        if (paciente == null) {
-            throw new BusinessException("Paciente não encontrado");
+        if (usuario == null) {
+            throw new RuntimeException("Usuário não encontrado");
         }
 
-        // 3. Validar senha
-        if (!senha.equals(paciente.getSenha())) {
-            throw new BusinessException("Senha incorreta");
+        // Verificar senha (em produção, usar BCrypt)
+        if (!usuario.getSenha().equals(senha)) {
+            throw new RuntimeException("Senha incorreta");
         }
 
-        // 4. Gerar token
-        String token = "visuall-token-" + UUID.randomUUID().toString(); // CORRIGIDO: "visual1" → "visuall"
+        if (!"S".equals(usuario.getAtivo())) {
+            throw new RuntimeException("Usuário inativo");
+        }
 
-        // 5. Retornar resposta // CORRIGIDO: "Retomar" → "Retornar"
+        // Gerar token (simplificado - em produção usar JWT)
+        String token = gerarToken();
+
+        // Criar UserDTO
+        UserDTO userDTO = new UserDTO();
+        userDTO.setId(usuario.getId());
+        userDTO.setNome(usuario.getNome());
+        userDTO.setEmail(usuario.getEmail());
+
+        // Criar resposta
         AuthResponse response = new AuthResponse();
         response.setToken(token);
-
-        UserDTO userDTO = new UserDTO();
-        userDTO.setId(paciente.getId());
-        userDTO.setCpf(paciente.getCpf());
-        userDTO.setIdPaciente(paciente.getIdPaciente());
-
         response.setUser(userDTO);
+
         return response;
     }
 
-    public AuthResponse register(String cpf, String senha, Integer idPaciente) {
-        // 1. Validar campos
-        if (cpf == null || cpf.trim().isEmpty()) {
-            throw new BusinessException("CPF é obrigatório");
-        }
-        if (senha == null || senha.trim().isEmpty()) {
-            throw new BusinessException("Senha é obrigatória");
-        }
-        // REMOVER validação do idPaciente aqui
-
-        // 2. Verificar se CPF já existe
-        Paciente pacienteExistente = pacienteDAO.findByCpf(cpf);
-        if (pacienteExistente != null) {
-            throw new BusinessException("CPF já cadastrado");
+    public AuthResponse register(String nome, String email, String senha) {
+        // Verificar se email já existe
+        Usuario usuarioExistente = usuarioDAO.findByEmail(email);
+        if (usuarioExistente != null) {
+            throw new RuntimeException("Email já cadastrado");
         }
 
-        // 3. Criar novo paciente
-        Paciente novoPaciente = new Paciente();
-        novoPaciente.setCpf(cpf);
-        novoPaciente.setSenha(senha);
-        novoPaciente.setIdPaciente(idPaciente); // Pode ser null ou um valor padrão
+        // Criar novo usuário
+        Usuario novoUsuario = new Usuario();
+        novoUsuario.setNome(nome);
+        novoUsuario.setEmail(email);
+        novoUsuario.setSenha(senha); // Em produção, hash da senha
+        novoUsuario.setAtivo("S");
 
-        // 4. Salvar no banco
-        Integer id = pacienteDAO.create(novoPaciente);
-        novoPaciente.setId(id);
+        // Salvar no banco
+        Integer id = usuarioDAO.create(novoUsuario);
 
-        // 5. Gerar token
-        String token = "visuall-token-" + UUID.randomUUID().toString();
+        if (id == -1) {
+            throw new RuntimeException("Erro ao criar usuário");
+        }
 
-        // 6. Retornar response
+        // Buscar usuário criado
+        Usuario usuarioCriado = usuarioDAO.findById(id);
+
+        // Gerar token
+        String token = gerarToken();
+
+        // Criar UserDTO
+        UserDTO userDTO = new UserDTO();
+        userDTO.setId(usuarioCriado.getId());
+        userDTO.setNome(usuarioCriado.getNome());
+        userDTO.setEmail(usuarioCriado.getEmail());
+
+        // Criar resposta
         AuthResponse response = new AuthResponse();
         response.setToken(token);
-
-        UserDTO userDTO = new UserDTO();
-        userDTO.setId(novoPaciente.getId());
-        userDTO.setCpf(novoPaciente.getCpf());
-        userDTO.setIdPaciente(novoPaciente.getIdPaciente());
-
         response.setUser(userDTO);
+
         return response;
+    }
+
+    private String gerarToken() {
+        // Token simples para desenvolvimento
+        // Em produção, usar JWT com expiração
+        return "token-" + UUID.randomUUID().toString();
     }
 }

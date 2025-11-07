@@ -2,14 +2,31 @@ package com.visuall.model.dto;
 
 public class UserDTO {
     private Integer id;
-    private String cpf;
-    private Integer idPaciente;
+    private String nome;
+    private String email;
 
-    // getters e setters
-    public Integer getId() { return id; }
-    public void setId(Integer id) { this.id = id; }
-    public String getCpf() { return cpf; }
-    public void setCpf(String cpf) { this.cpf = cpf; }
-    public Integer getIdPaciente() { return idPaciente; }
-    public void setIdPaciente(Integer idPaciente) { this.idPaciente = idPaciente; }
+    // Getters e Setters
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public void setNome(String nome) {
+        this.nome = nome;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
 }

@@ -18,10 +18,10 @@ public class LembreteDAO {
 
     public List<LembreteResponseDTO> readByPacienteId(Integer pacienteId) {
         List<LembreteResponseDTO> lembretes = new ArrayList<>();
-        
+
         String sql = "SELECT id_lembrete, mensagem as titulo, data_envio, enviado, " +
                 "id_paciente, id_consulta " +
-                "FROM TB_VA_LEMBRETE " +
+                "FROM LEMBRETES " +
                 "WHERE id_paciente = ? ORDER BY data_envio DESC";
 
         Connection conn = null;
@@ -39,23 +39,26 @@ public class LembreteDAO {
                     LembreteResponseDTO dto = new LembreteResponseDTO();
                     dto.setId(rs.getInt("id_lembrete"));
                     dto.setTitulo(rs.getString("titulo"));
-                    dto.setTipoLembrete("CONSULTA");
+                    dto.setNomeMedico("Dr. João Silva"); // Valor padrão
+                    dto.setEspecialidade("Clínico Geral"); // Valor padrão
 
-                   
+                    // Data
                     java.sql.Date dataSql = rs.getDate("data_envio");
                     if (dataSql != null) {
-                        dto.setDataCompromisso(dataSql.toLocalDate());
+                        dto.setDataConsulta(dataSql.toLocalDate());
+                    } else {
+                        dto.setDataConsulta(LocalDate.now());
                     }
 
-                  
-                    dto.setHoraCompromisso(LocalTime.of(12, 0));
+                    // Hora
+                    dto.setHoraConsulta(LocalTime.of(12, 0)); // Valor padrão
 
+                    dto.setLocalConsulta("Consultório"); // Valor padrão
                     dto.setObservacoes("Lembrete de consulta");
-                    dto.setLocal("Consultório"); 
-                    dto.setNomeEspecialista("Dr. João Silva"); 
-                    dto.setEspecialidade("Clínico Geral"); 
-                    dto.setAtivo("S".equals(rs.getString("enviado")));
-                    dto.setIdPaciente(rs.getInt("id_paciente"));
+                    dto.setConcluido(!"S".equals(rs.getString("enviado")));
+                    dto.setUsuarioId(rs.getInt("id_paciente"));
+                    dto.setDataCriacao(rs.getTimestamp("data_envio") != null ?
+                            rs.getTimestamp("data_envio").toString() : LocalDate.now().toString());
 
                     lembretes.add(dto);
 
@@ -76,7 +79,7 @@ public class LembreteDAO {
     }
 
     public LembretePessoal readById(Integer lembreteId) {
-        String sql = "SELECT * FROM TB_VA_LEMBRETE WHERE id_lembrete = ?";
+        String sql = "SELECT * FROM LEMBRETES WHERE id_lembrete = ?";
 
         Connection conn = null;
         PreparedStatement stmt = null;
@@ -92,15 +95,16 @@ public class LembreteDAO {
                 LembretePessoal lembrete = new LembretePessoal();
                 lembrete.setId(rs.getInt("id_lembrete"));
                 lembrete.setTitulo(rs.getString("mensagem"));
-                lembrete.setTipoLembrete("CONSULTA");
 
-                
+                // Data
                 java.sql.Date dataSql = rs.getDate("data_envio");
                 if (dataSql != null) {
                     lembrete.setDataCompromisso(dataSql.toLocalDate());
+                } else {
+                    lembrete.setDataCompromisso(LocalDate.now());
                 }
 
-               
+                // Hora padrão
                 lembrete.setHoraCompromisso(LocalTime.of(12, 0));
 
                 lembrete.setObservacoes("Lembrete de consulta");
@@ -120,9 +124,8 @@ public class LembreteDAO {
     }
 
     public Integer create(LembretePessoal lembrete) {
-        
-        String sql = "INSERT INTO TB_VA_LEMBRETE (id_lembrete, data_envio, enviado, mensagem, id_paciente, id_consulta) " +
-                "VALUES (seq_lembrete.NEXTVAL, SYSDATE, 'N', ?, ?, ?)";
+        String sql = "INSERT INTO LEMBRETES (data_envio, enviado, mensagem, id_paciente, id_consulta) " +
+                "VALUES (SYSDATE, 'N', ?, ?, ?)";
 
         Connection conn = null;
         PreparedStatement stmt = null;
@@ -135,11 +138,11 @@ public class LembreteDAO {
             stmt.setString(1, lembrete.getTitulo());
             stmt.setInt(2, lembrete.getIdPaciente());
 
-           
+            // ID da consulta (pode ser null)
             if (lembrete.getId() != null) {
-                stmt.setInt(3, lembrete.getId()); 
+                stmt.setInt(3, lembrete.getId());
             } else {
-                stmt.setInt(3, 1); 
+                stmt.setInt(3, 1);
             }
 
             int rowsAffected = stmt.executeUpdate();
@@ -162,7 +165,7 @@ public class LembreteDAO {
     }
 
     public boolean update(LembretePessoal lembrete) {
-        String sql = "UPDATE TB_VA_LEMBRETE SET mensagem = ? WHERE id_lembrete = ?";
+        String sql = "UPDATE LEMBRETES SET mensagem = ? WHERE id_lembrete = ?";
 
         Connection conn = null;
         PreparedStatement stmt = null;
@@ -186,7 +189,7 @@ public class LembreteDAO {
     }
 
     public boolean delete(Integer lembreteId, Integer pacienteId) {
-        String sql = "DELETE FROM TB_VA_LEMBRETE WHERE id_lembrete = ? AND id_paciente = ?";
+        String sql = "DELETE FROM LEMBRETES WHERE id_lembrete = ? AND id_paciente = ?";
 
         Connection conn = null;
         PreparedStatement stmt = null;
@@ -209,10 +212,9 @@ public class LembreteDAO {
     }
 
     public List<LembreteResponseDTO> buscarAtivosPorPaciente(Integer pacienteId) {
-        
         String sql = "SELECT id_lembrete, mensagem as titulo, data_envio, enviado, " +
                 "id_paciente, id_consulta " +
-                "FROM TB_VA_LEMBRETE " +
+                "FROM LEMBRETES " +
                 "WHERE id_paciente = ? AND enviado = 'N' ORDER BY data_envio DESC";
 
         List<LembreteResponseDTO> lembretes = new ArrayList<>();
@@ -230,20 +232,25 @@ public class LembreteDAO {
                 LembreteResponseDTO dto = new LembreteResponseDTO();
                 dto.setId(rs.getInt("id_lembrete"));
                 dto.setTitulo(rs.getString("titulo"));
-                dto.setTipoLembrete("CONSULTA");
+                dto.setNomeMedico("Dr. João Silva");
+                dto.setEspecialidade("Clínico Geral");
 
+                // Data
                 java.sql.Date dataSql = rs.getDate("data_envio");
                 if (dataSql != null) {
-                    dto.setDataCompromisso(dataSql.toLocalDate());
+                    dto.setDataConsulta(dataSql.toLocalDate());
+                } else {
+                    dto.setDataConsulta(LocalDate.now());
                 }
 
-                dto.setHoraCompromisso(LocalTime.of(12, 0));
+                // Hora
+                dto.setHoraConsulta(LocalTime.of(12, 0));
+                dto.setLocalConsulta("Consultório");
                 dto.setObservacoes("Lembrete de consulta");
-                dto.setLocal("Consultório");
-                dto.setNomeEspecialista("Dr. João Silva");
-                dto.setEspecialidade("Clínico Geral");
-                dto.setAtivo(true);
-                dto.setIdPaciente(rs.getInt("id_paciente"));
+                dto.setConcluido(false); // Ativos não estão concluídos
+                dto.setUsuarioId(rs.getInt("id_paciente"));
+                dto.setDataCriacao(rs.getTimestamp("data_envio") != null ?
+                        rs.getTimestamp("data_envio").toString() : LocalDate.now().toString());
 
                 lembretes.add(dto);
             }

@@ -5,48 +5,48 @@ import java.time.LocalTime;
 
 public class LembreteResponseDTO {
     private Integer id;
+    private Integer usuarioId;
     private String titulo;
-    private String nomeEspecialista;
+    private String nomeMedico;
     private String especialidade;
-    private String local;
-    private LocalDate dataCompromisso;
-    private LocalTime horaCompromisso;
+    private LocalDate dataConsulta;
+    private LocalTime horaConsulta;
+    private String localConsulta;
     private String observacoes;
-    private boolean ativo;
-    private String tipoLembrete;
-    private Integer idPaciente;
+    private Boolean concluido;
+    private String dataCriacao;
 
-  
+    // Getters e Setters
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
+
+    public Integer getUsuarioId() { return usuarioId; }
+    public void setUsuarioId(Integer usuarioId) { this.usuarioId = usuarioId; }
 
     public String getTitulo() { return titulo; }
     public void setTitulo(String titulo) { this.titulo = titulo; }
 
-    public String getNomeEspecialista() { return nomeEspecialista; }
-    public void setNomeEspecialista(String nomeEspecialista) { this.nomeEspecialista = nomeEspecialista; }
+    public String getNomeMedico() { return nomeMedico; }
+    public void setNomeMedico(String nomeMedico) { this.nomeMedico = nomeMedico; }
 
     public String getEspecialidade() { return especialidade; }
     public void setEspecialidade(String especialidade) { this.especialidade = especialidade; }
 
-    public String getLocal() { return local; }
-    public void setLocal(String local) { this.local = local; }
+    public LocalDate getDataConsulta() { return dataConsulta; }
+    public void setDataConsulta(LocalDate dataConsulta) { this.dataConsulta = dataConsulta; }
 
-    public LocalDate getDataCompromisso() { return dataCompromisso; }
-    public void setDataCompromisso(LocalDate dataCompromisso) { this.dataCompromisso = dataCompromisso; }
+    public LocalTime getHoraConsulta() { return horaConsulta; }
+    public void setHoraConsulta(LocalTime horaConsulta) { this.horaConsulta = horaConsulta; }
 
-    public LocalTime getHoraCompromisso() { return horaCompromisso; }
-    public void setHoraCompromisso(LocalTime horaCompromisso) { this.horaCompromisso = horaCompromisso; }
+    public String getLocalConsulta() { return localConsulta; }
+    public void setLocalConsulta(String localConsulta) { this.localConsulta = localConsulta; }
 
     public String getObservacoes() { return observacoes; }
     public void setObservacoes(String observacoes) { this.observacoes = observacoes; }
 
-    public boolean isAtivo() { return ativo; }
-    public void setAtivo(boolean ativo) { this.ativo = ativo; }
+    public Boolean getConcluido() { return concluido; }
+    public void setConcluido(Boolean concluido) { this.concluido = concluido; }
 
-    public String getTipoLembrete() { return tipoLembrete; }
-    public void setTipoLembrete(String tipoLembrete) { this.tipoLembrete = tipoLembrete; }
-
-    public Integer getIdPaciente() { return idPaciente; }
-    public void setIdPaciente(Integer idPaciente) { this.idPaciente = idPaciente; }
+    public String getDataCriacao() { return dataCriacao; }
+    public void setDataCriacao(String dataCriacao) { this.dataCriacao = dataCriacao; }
 }

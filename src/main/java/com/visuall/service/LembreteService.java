@@ -1,11 +1,9 @@
 package com.visuall.service;
 
 import com.visuall.dao.LembreteDAO;
-import com.visuall.dao.EspecialistaDAO;
-import com.visuall.dao.LocalAtendimentoDAO;
+import com.visuall.dao.UsuarioDAO;
 import com.visuall.model.LembretePessoal;
-import com.visuall.model.Especialista;
-import com.visuall.model.LocalAtendimento;
+import com.visuall.model.Usuario;
 import com.visuall.model.dto.LembreteRequestDTO;
 import com.visuall.model.dto.LembreteResponseDTO;
 import com.visuall.model.dto.EspecialistaDTO;
@@ -14,6 +12,7 @@ import com.visuall.exception.BusinessException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 @ApplicationScoped
@@ -23,214 +22,162 @@ public class LembreteService {
     LembreteDAO lembreteDAO;
 
     @Inject
-    EspecialistaDAO especialistaDAO;
+    UsuarioDAO usuarioDAO;
 
-    @Inject
-    LocalAtendimentoDAO localDAO;
-
-    public List<LembreteResponseDTO> listarLembretesPorPaciente(Integer pacienteId) {
-        try {
-            return lembreteDAO.readByPacienteId(pacienteId);
-        } catch (Exception e) {
-            throw new BusinessException("Erro ao listar lembretes: " + e.getMessage());
+    public List<LembreteResponseDTO> listarPorUsuario(Integer usuarioId) {
+        // Verificar se usuário existe
+        Usuario usuario = usuarioDAO.findById(usuarioId);
+        if (usuario == null) {
+            throw new BusinessException("Usuário não encontrado");
         }
+
+        return lembreteDAO.readByPacienteId(usuarioId);
     }
 
-    public List<LembreteResponseDTO> listarLembretesAtivosPorPaciente(Integer pacienteId) {
-        try {
-            return lembreteDAO.buscarAtivosPorPaciente(pacienteId);
-        } catch (Exception e) {
-            throw new BusinessException("Erro ao listar lembretes ativos: " + e.getMessage());
+    public List<LembreteResponseDTO> listarAtivosPorUsuario(Integer usuarioId) {
+        // Verificar se usuário existe
+        Usuario usuario = usuarioDAO.findById(usuarioId);
+        if (usuario == null) {
+            throw new BusinessException("Usuário não encontrado");
         }
+
+        return lembreteDAO.buscarAtivosPorPaciente(usuarioId);
     }
 
-    public LembreteResponseDTO buscarLembretePorId(Integer lembreteId) {
-        try {
-            LembretePessoal lembrete = lembreteDAO.readById(lembreteId);
-            if (lembrete == null) {
-                throw new BusinessException("Lembrete não encontrado");
-            }
-            return convertToResponseDTO(lembrete);
-        } catch (Exception e) {
-            throw new BusinessException("Erro ao buscar lembrete: " + e.getMessage());
+    public LembreteResponseDTO buscarLembretePorId(Integer id) {
+        LembretePessoal lembrete = lembreteDAO.readById(id);
+        if (lembrete == null) {
+            throw new BusinessException("Lembrete não encontrado");
         }
+
+        // Buscar na lista e retornar o primeiro que corresponde ao ID
+        return lembreteDAO.readByPacienteId(lembrete.getIdPaciente())
+                .stream()
+                .filter(l -> l.getId().equals(id))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException("Lembrete não encontrado"));
     }
 
     public LembreteResponseDTO criarLembrete(LembreteRequestDTO request) {
-        try {
-            validarLembreteRequest(request);
-            LembretePessoal lembrete = convertToEntity(request);
-            Integer id = lembreteDAO.create(lembrete);
+        // Validar dados
+        if (request.getNomeMedico() == null || request.getNomeMedico().trim().isEmpty()) {
+            throw new BusinessException("Nome do médico é obrigatório");
+        }
+        if (request.getDataConsulta() == null) {
+            throw new BusinessException("Data da consulta é obrigatória");
+        }
 
-            if (id <= 0) {
-                throw new BusinessException("Erro ao criar lembrete no banco");
-            }
+        // Converter DTO para entidade
+        LembretePessoal lembrete = new LembretePessoal();
+        lembrete.setTitulo("Consulta com " + request.getNomeMedico());
+        lembrete.setDataCompromisso(request.getDataConsulta());
+        lembrete.setHoraCompromisso(LocalTime.parse(request.getHoraConsulta() + ":00")); // Formatar hora
+        lembrete.setObservacoes(request.getObservacoes());
+        lembrete.setIdPaciente(request.getUsuarioId());
+        lembrete.setAtivo(true);
 
-            lembrete.setId(id);
-            return convertToResponseDTO(lembrete);
+        // Salvar no banco
+        Integer id = lembreteDAO.create(lembrete);
+        if (id == -1) {
+            throw new BusinessException("Erro ao criar lembrete");
+        }
 
-        } catch (BusinessException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new BusinessException("Erro ao criar lembrete: " + e.getMessage());
+        // Buscar o lembrete criado e converter para ResponseDTO
+        return lembreteDAO.readByPacienteId(request.getUsuarioId())
+                .stream()
+                .filter(l -> l.getId().equals(id))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException("Erro ao recuperar lembrete criado"));
+    }
+
+    public LembreteResponseDTO atualizarLembrete(Integer id, LembreteRequestDTO request) {
+        // Verificar se lembrete existe
+        LembretePessoal lembreteExistente = lembreteDAO.readById(id);
+        if (lembreteExistente == null) {
+            throw new BusinessException("Lembrete não encontrado");
+        }
+
+        // Atualizar dados
+        lembreteExistente.setTitulo("Consulta com " + request.getNomeMedico());
+        lembreteExistente.setDataCompromisso(request.getDataConsulta());
+        lembreteExistente.setHoraCompromisso(LocalTime.parse(request.getHoraConsulta() + ":00")); // Formatar hora
+        lembreteExistente.setObservacoes(request.getObservacoes());
+
+        // Salvar atualização
+        boolean atualizado = lembreteDAO.update(lembreteExistente);
+        if (!atualizado) {
+            throw new BusinessException("Erro ao atualizar lembrete");
+        }
+
+        // Buscar o lembrete atualizado
+        return lembreteDAO.readByPacienteId(request.getUsuarioId())
+                .stream()
+                .filter(l -> l.getId().equals(id))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException("Erro ao recuperar lembrete atualizado"));
+    }
+
+    public void excluirLembrete(Integer id) {
+        // Verificar se lembrete existe
+        LembretePessoal lembrete = lembreteDAO.readById(id);
+        if (lembrete == null) {
+            throw new BusinessException("Lembrete não encontrado");
+        }
+
+        boolean excluido = lembreteDAO.delete(id, lembrete.getIdPaciente());
+        if (!excluido) {
+            throw new BusinessException("Erro ao excluir lembrete");
         }
     }
 
-    public LembreteResponseDTO atualizarLembrete(LembreteRequestDTO request) {
-        try {
-            if (request.getId() == null) {
-                throw new BusinessException("ID do lembrete é obrigatório");
-            }
-
-            validarLembreteRequest(request);
-            LembretePessoal lembreteExistente = lembreteDAO.readById(request.getId());
-            if (lembreteExistente == null) {
-                throw new BusinessException("Lembrete não encontrado");
-            }
-
-            LembretePessoal lembreteAtualizado = convertToEntity(request);
-            lembreteAtualizado.setId(request.getId());
-
-            boolean sucesso = lembreteDAO.update(lembreteAtualizado);
-            if (!sucesso) {
-                throw new BusinessException("Erro ao atualizar lembrete");
-            }
-
-            return convertToResponseDTO(lembreteAtualizado);
-
-        } catch (BusinessException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new BusinessException("Erro ao atualizar lembrete: " + e.getMessage());
+    public void marcarComoConcluido(Integer id) {
+        // Verificar se lembrete existe
+        LembretePessoal lembrete = lembreteDAO.readById(id);
+        if (lembrete == null) {
+            throw new BusinessException("Lembrete não encontrado");
         }
-    }
 
-    public void excluirLembrete(Integer lembreteId) {
-        try {
-            LembretePessoal lembrete = lembreteDAO.readById(lembreteId);
-            if (lembrete == null) {
-                throw new BusinessException("Lembrete não encontrado");
-            }
-
-            boolean sucesso = lembreteDAO.delete(lembreteId, lembrete.getIdPaciente());
-            if (!sucesso) {
-                throw new BusinessException("Erro ao excluir lembrete");
-            }
-        } catch (BusinessException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new BusinessException("Erro ao excluir lembrete: " + e.getMessage());
+        // Marcar como concluído (inativo)
+        lembrete.setAtivo(false);
+        boolean atualizado = lembreteDAO.update(lembrete);
+        if (!atualizado) {
+            throw new BusinessException("Erro ao marcar lembrete como concluído");
         }
     }
 
     public List<EspecialistaDTO> listarEspecialistas() {
-        try {
-            return especialistaDAO.findAll();
-        } catch (Exception e) {
-            throw new BusinessException("Erro ao listar especialistas: " + e.getMessage());
-        }
-    }
-
-    public List<LocalAtendimentoDTO> listarLocais() {
-        try {
-            return localDAO.findAll();
-        } catch (Exception e) {
-            throw new BusinessException("Erro ao listar locais: " + e.getMessage());
-        }
-    }
-
-    private void validarLembreteRequest(LembreteRequestDTO request) {
-        if (request.getTitulo() == null || request.getTitulo().trim().length() < 3) {
-            throw new BusinessException("Título deve ter pelo menos 3 caracteres");
-        }
-
-        if (request.getTipoLembrete() == null || !isTipoValido(request.getTipoLembrete())) {
-            throw new BusinessException("Tipo de lembrete inválido");
-        }
-
-        if (request.getDataCompromisso() == null || request.getDataCompromisso().isBefore(LocalDate.now())) {
-            throw new BusinessException("Data deve ser futura");
-        }
-
-        if (request.getHoraCompromisso() == null) {
-            throw new BusinessException("Hora é obrigatória");
-        }
-
-        if (request.getIdPaciente() == null || request.getIdPaciente() <= 0) {
-            throw new BusinessException("ID do paciente é obrigatório");
-        }
-    }
-
-    private boolean isTipoValido(String tipo) {
-        return tipo != null && (
-                tipo.equals("CONSULTA") ||
-                        tipo.equals("EXAME") ||
-                        tipo.equals("RETORNO") ||
-                        tipo.equals("MEDICAMENTO") ||
-                        tipo.equals("OUTRO")
+        // Retornar lista fixa de especialistas
+        return List.of(
+                criarEspecialista(1, "Dr. João Silva", "Cardiologia"),
+                criarEspecialista(2, "Dra. Maria Santos", "Dermatologia"),
+                criarEspecialista(3, "Dr. Pedro Costa", "Ortopedia"),
+                criarEspecialista(4, "Dra. Ana Oliveira", "Pediatria")
         );
     }
 
-    private LembretePessoal convertToEntity(LembreteRequestDTO dto) {
-        LembretePessoal lembrete = new LembretePessoal();
-        lembrete.setTitulo(dto.getTitulo());
-        lembrete.setTipoLembrete(dto.getTipoLembrete());
-        lembrete.setDataCompromisso(dto.getDataCompromisso());
-        lembrete.setHoraCompromisso(dto.getHoraCompromisso());
-        lembrete.setObservacoes(dto.getObservacoes());
-        lembrete.setAtivo(true);
-        lembrete.setIdPaciente(dto.getIdPaciente());
-
-       
-        if (dto.getIdEspecialista() != null) {
-            Especialista especialista = especialistaDAO.findById(dto.getIdEspecialista());
-            if (especialista == null) {
-                throw new BusinessException("Especialista não encontrado");
-            }
-            lembrete.setEspecialista(especialista);
-        }
-
-       
-        if (dto.getIdLocal() != null) {
-            LocalAtendimento local = localDAO.findById(dto.getIdLocal());
-            if (local == null) {
-                throw new BusinessException("Local não encontrado");
-            }
-            lembrete.setLocal(local);
-        }
-
-        return lembrete;
+    public List<LocalAtendimentoDTO> listarLocais() {
+        // Retornar lista fixa de locais
+        return List.of(
+                criarLocal(1, "Hospital Central", "Av. Principal, 1000"),
+                criarLocal(2, "Clínica Saúde Total", "Rua Saúde, 500"),
+                criarLocal(3, "Laboratório Análises", "Praça Exames, 200")
+        );
     }
 
-    private LembreteResponseDTO convertToResponseDTO(LembretePessoal lembrete) {
-        LembreteResponseDTO dto = new LembreteResponseDTO();
-        dto.setId(lembrete.getId());
-        dto.setTitulo(lembrete.getTitulo());
-        dto.setTipoLembrete(lembrete.getTipoLembrete());
-        dto.setDataCompromisso(lembrete.getDataCompromisso());
-        dto.setHoraCompromisso(lembrete.getHoraCompromisso());
-        dto.setObservacoes(lembrete.getObservacoes());
-        dto.setAtivo(lembrete.isAtivo());
-        dto.setIdPaciente(lembrete.getIdPaciente());
+    // Métodos auxiliares
+    private EspecialistaDTO criarEspecialista(Integer id, String nome, String especialidade) {
+        EspecialistaDTO especialista = new EspecialistaDTO();
+        especialista.setId(id);
+        especialista.setNome(nome);
+        especialista.setEspecialidade(especialidade);
+        return especialista;
+    }
 
-      
-        if (lembrete.getEspecialista() != null) {
-            dto.setNomeEspecialista(lembrete.getEspecialista().getNome());
-            dto.setEspecialidade(lembrete.getEspecialista().getEspecialidade());
-        } else {
-          
-            dto.setNomeEspecialista("Dr. João Silva");
-            dto.setEspecialidade("Clínico Geral");
-        }
-
-        
-        if (lembrete.getLocal() != null) {
-            dto.setLocal(lembrete.getLocal().getNome());
-        } else {
-            
-            dto.setLocal("Consultório Médico");
-        }
-
-        return dto;
+    private LocalAtendimentoDTO criarLocal(Integer id, String nome, String endereco) {
+        LocalAtendimentoDTO local = new LocalAtendimentoDTO();
+        local.setId(id);
+        local.setNome(nome);
+        local.setEndereco(endereco);
+        return local;
     }
 }

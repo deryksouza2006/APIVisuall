@@ -1,15 +1,42 @@
 package com.visuall.model.dto;
 
 public class RegisterRequest {
-    private String cpf;
+    private String nome;
+    private String email;
     private String senha;
-    private Integer idPaciente; // ID do paciente na tabela principal
 
-    // getters e setters
-    public String getCpf() { return cpf; }
-    public void setCpf(String cpf) { this.cpf = cpf; }
-    public String getSenha() { return senha; }
-    public void setSenha(String senha) { this.senha = senha; }
-    public Integer getIdPaciente() { return idPaciente; }
-    public void setIdPaciente(Integer idPaciente) { this.idPaciente = idPaciente; }
+    // Construtor padrão
+    public RegisterRequest() {}
+
+    // Construtor com parâmetros
+    public RegisterRequest(String nome, String email, String senha) {
+        this.nome = nome;
+        this.email = email;
+        this.senha = senha;
+    }
+
+    // Getters e Setters
+    public String getNome() {
+        return nome;
+    }
+
+    public void setNome(String nome) {
+        this.nome = nome;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getSenha() {
+        return senha;
+    }
+
+    public void setSenha(String senha) {
+        this.senha = senha;
+    }
 }

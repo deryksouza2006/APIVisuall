@@ -13,7 +13,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
 
-@Path("/api")
+@Path("/api/lembretes")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class LembreteController {
@@ -29,10 +29,10 @@ public class LembreteController {
     }
 
     @GET
-    @Path("/pacientes/{pacienteId}/lembretes")
-    public Response listarLembretesPorPaciente(@PathParam("pacienteId") Integer pacienteId) {
+    @Path("/usuario/{usuarioId}")
+    public Response listarLembretes(@PathParam("usuarioId") Integer usuarioId) {
         try {
-            List<LembreteResponseDTO> lembretes = lembreteService.listarLembretesPorPaciente(pacienteId);
+            List<LembreteResponseDTO> lembretes = lembreteService.listarPorUsuario(usuarioId);
             return Response.ok(lembretes).build();
         } catch (BusinessException e) {
             return Response.status(400).entity(new ErrorResponse(e.getMessage())).build();
@@ -40,10 +40,10 @@ public class LembreteController {
     }
 
     @GET
-    @Path("/pacientes/{pacienteId}/lembretes/ativos")
-    public Response listarLembretesAtivos(@PathParam("pacienteId") Integer pacienteId) {
+    @Path("/usuario/{usuarioId}/ativos")
+    public Response listarLembretesAtivos(@PathParam("usuarioId") Integer usuarioId) {
         try {
-            List<LembreteResponseDTO> lembretes = lembreteService.listarLembretesAtivosPorPaciente(pacienteId);
+            List<LembreteResponseDTO> lembretes = lembreteService.listarAtivosPorUsuario(usuarioId);
             return Response.ok(lembretes).build();
         } catch (BusinessException e) {
             return Response.status(400).entity(new ErrorResponse(e.getMessage())).build();
@@ -51,7 +51,7 @@ public class LembreteController {
     }
 
     @GET
-    @Path("/lembretes/{id}")
+    @Path("/{id}")
     public Response buscarLembretePorId(@PathParam("id") Integer id) {
         try {
             LembreteResponseDTO lembrete = lembreteService.buscarLembretePorId(id);
@@ -62,7 +62,6 @@ public class LembreteController {
     }
 
     @POST
-    @Path("/lembretes")
     public Response criarLembrete(LembreteRequestDTO request) {
         try {
             LembreteResponseDTO novoLembrete = lembreteService.criarLembrete(request);
@@ -73,11 +72,10 @@ public class LembreteController {
     }
 
     @PUT
-    @Path("/lembretes/{id}")
+    @Path("/{id}")
     public Response atualizarLembrete(@PathParam("id") Integer id, LembreteRequestDTO request) {
         try {
-            request.setId(id);
-            LembreteResponseDTO atualizado = lembreteService.atualizarLembrete(request);
+            LembreteResponseDTO atualizado = lembreteService.atualizarLembrete(id, request);
             return Response.ok(atualizado).build();
         } catch (BusinessException e) {
             return Response.status(400).entity(new ErrorResponse(e.getMessage())).build();
@@ -85,11 +83,22 @@ public class LembreteController {
     }
 
     @DELETE
-    @Path("/lembretes/{id}")
+    @Path("/{id}")
     public Response excluirLembrete(@PathParam("id") Integer id) {
         try {
             lembreteService.excluirLembrete(id);
             return Response.ok(new SimpleResponse("Lembrete excluído com sucesso")).build();
+        } catch (BusinessException e) {
+            return Response.status(400).entity(new ErrorResponse(e.getMessage())).build();
+        }
+    }
+
+    @PATCH
+    @Path("/{id}/concluir")
+    public Response marcarComoConcluido(@PathParam("id") Integer id) {
+        try {
+            lembreteService.marcarComoConcluido(id);
+            return Response.ok(new SimpleResponse("Lembrete marcado como concluído")).build();
         } catch (BusinessException e) {
             return Response.status(400).entity(new ErrorResponse(e.getMessage())).build();
         }
@@ -117,7 +126,6 @@ public class LembreteController {
         }
     }
 
-  
     public static class ErrorResponse {
         public String error;
         public ErrorResponse(String error) { this.error = error; }

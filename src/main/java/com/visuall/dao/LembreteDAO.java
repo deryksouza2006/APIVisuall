@@ -3,6 +3,7 @@ package com.visuall.dao;
 import com.visuall.config.DatabaseConfig;
 import com.visuall.model.LembretePessoal;
 import com.visuall.model.dto.LembreteResponseDTO;
+import jakarta.enterprise.context.ApplicationScoped;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -10,25 +11,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
+@ApplicationScoped
 public class LembreteDAO {
 
     private static final Logger logger = Logger.getLogger(LembreteDAO.class.getName());
 
-    // MÉTODO NOVO ADICIONADO - Buscar LembreteResponseDTO por ID
     public LembreteResponseDTO readByIdDTO(Integer lembreteId) {
-        String sql = "SELECT id_lembrete, mensagem as titulo, data_envio, enviado, " +
-                "id_paciente, id_consulta " +
-                "FROM LEMBRETES WHERE id_lembrete = ?";
+        String sql = "SELECT id_lembrete, mensagem as titulo, data_envio, enviado, id_paciente, id_consulta FROM LEMBRETES WHERE id_lembrete = ?";
 
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-        try {
-            conn = DatabaseConfig.getConnection();
-            stmt = conn.prepareStatement(sql);
             stmt.setInt(1, lembreteId);
-            rs = stmt.executeQuery();
+            ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
                 LembreteResponseDTO dto = new LembreteResponseDTO();
@@ -37,22 +32,17 @@ public class LembreteDAO {
                 dto.setNomeMedico("Dr. João Silva");
                 dto.setEspecialidade("Clínico Geral");
 
-                // Data
                 java.sql.Date dataSql = rs.getDate("data_envio");
-                if (dataSql != null) {
-                    dto.setDataConsulta(dataSql.toLocalDate());
-                } else {
-                    dto.setDataConsulta(LocalDate.now());
-                }
+                dto.setDataConsulta(dataSql != null ? dataSql.toLocalDate() : LocalDate.now());
 
-                // Hora
                 dto.setHoraConsulta(LocalTime.of(12, 0));
                 dto.setLocalConsulta("Consultório");
                 dto.setObservacoes("Lembrete de consulta");
                 dto.setConcluido(!"S".equals(rs.getString("enviado")));
                 dto.setUsuarioId(rs.getInt("id_paciente"));
-                dto.setDataCriacao(rs.getTimestamp("data_envio") != null ?
-                        rs.getTimestamp("data_envio").toString() : LocalDate.now().toString());
+
+                Timestamp dataCriacao = rs.getTimestamp("data_envio");
+                dto.setDataCriacao(dataCriacao != null ? dataCriacao.toString() : LocalDate.now().toString());
 
                 return dto;
             }
@@ -61,59 +51,39 @@ public class LembreteDAO {
         } catch (SQLException e) {
             logger.severe("Erro ao buscar lembrete DTO por ID: " + e.getMessage());
             throw new RuntimeException("Erro ao buscar lembrete: " + e.getMessage(), e);
-        } finally {
-            closeResources(rs, stmt, conn);
         }
     }
 
     public List<LembreteResponseDTO> readByPacienteId(Integer pacienteId) {
         List<LembreteResponseDTO> lembretes = new ArrayList<>();
+        String sql = "SELECT id_lembrete, mensagem as titulo, data_envio, enviado, id_paciente, id_consulta FROM LEMBRETES WHERE id_paciente = ? ORDER BY data_envio DESC";
 
-        String sql = "SELECT id_lembrete, mensagem as titulo, data_envio, enviado, " +
-                "id_paciente, id_consulta " +
-                "FROM LEMBRETES " +
-                "WHERE id_paciente = ? ORDER BY data_envio DESC";
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
-
-        try {
-            conn = DatabaseConfig.getConnection();
-            stmt = conn.prepareStatement(sql);
             stmt.setInt(1, pacienteId);
-            rs = stmt.executeQuery();
+            ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {
-                try {
-                    LembreteResponseDTO dto = new LembreteResponseDTO();
-                    dto.setId(rs.getInt("id_lembrete"));
-                    dto.setTitulo(rs.getString("titulo"));
-                    dto.setNomeMedico("Dr. João Silva");
-                    dto.setEspecialidade("Clínico Geral");
+                LembreteResponseDTO dto = new LembreteResponseDTO();
+                dto.setId(rs.getInt("id_lembrete"));
+                dto.setTitulo(rs.getString("titulo"));
+                dto.setNomeMedico("Dr. João Silva");
+                dto.setEspecialidade("Clínico Geral");
 
-                    // Data
-                    java.sql.Date dataSql = rs.getDate("data_envio");
-                    if (dataSql != null) {
-                        dto.setDataConsulta(dataSql.toLocalDate());
-                    } else {
-                        dto.setDataConsulta(LocalDate.now());
-                    }
+                java.sql.Date dataSql = rs.getDate("data_envio");
+                dto.setDataConsulta(dataSql != null ? dataSql.toLocalDate() : LocalDate.now());
 
-                    // Hora
-                    dto.setHoraConsulta(LocalTime.of(12, 0));
-                    dto.setLocalConsulta("Consultório");
-                    dto.setObservacoes("Lembrete de consulta");
-                    dto.setConcluido(!"S".equals(rs.getString("enviado")));
-                    dto.setUsuarioId(rs.getInt("id_paciente"));
-                    dto.setDataCriacao(rs.getTimestamp("data_envio") != null ?
-                            rs.getTimestamp("data_envio").toString() : LocalDate.now().toString());
+                dto.setHoraConsulta(LocalTime.of(12, 0));
+                dto.setLocalConsulta("Consultório");
+                dto.setObservacoes("Lembrete de consulta");
+                dto.setConcluido(!"S".equals(rs.getString("enviado")));
+                dto.setUsuarioId(rs.getInt("id_paciente"));
 
-                    lembretes.add(dto);
+                Timestamp dataCriacao = rs.getTimestamp("data_envio");
+                dto.setDataCriacao(dataCriacao != null ? dataCriacao.toString() : LocalDate.now().toString());
 
-                } catch (Exception e) {
-                    logger.warning("Erro ao processar linha do resultado: " + e.getMessage());
-                }
+                lembretes.add(dto);
             }
 
             logger.info("Encontrados " + lembretes.size() + " lembretes para paciente " + pacienteId);
@@ -122,43 +92,30 @@ public class LembreteDAO {
         } catch (SQLException e) {
             logger.severe("Erro SQL ao buscar lembretes: " + e.getMessage());
             throw new RuntimeException("Erro ao buscar lembretes: " + e.getMessage(), e);
-        } finally {
-            closeResources(rs, stmt, conn);
         }
     }
 
     public LembretePessoal readById(Integer lembreteId) {
         String sql = "SELECT * FROM LEMBRETES WHERE id_lembrete = ?";
 
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-        try {
-            conn = DatabaseConfig.getConnection();
-            stmt = conn.prepareStatement(sql);
             stmt.setInt(1, lembreteId);
-            rs = stmt.executeQuery();
+            ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
                 LembretePessoal lembrete = new LembretePessoal();
                 lembrete.setId(rs.getInt("id_lembrete"));
                 lembrete.setTitulo(rs.getString("mensagem"));
 
-                // Data
                 java.sql.Date dataSql = rs.getDate("data_envio");
-                if (dataSql != null) {
-                    lembrete.setDataCompromisso(dataSql.toLocalDate());
-                } else {
-                    lembrete.setDataCompromisso(LocalDate.now());
-                }
+                lembrete.setDataCompromisso(dataSql != null ? dataSql.toLocalDate() : LocalDate.now());
 
-                // Hora padrão
                 lembrete.setHoraCompromisso(LocalTime.of(12, 0));
-
                 lembrete.setObservacoes("Lembrete de consulta");
                 lembrete.setIdPaciente(rs.getInt("id_paciente"));
-                lembrete.setAtivo(!"S".equals(rs.getString("enviado"))); // CORRIGIDO: Ativo quando não enviado
+                lembrete.setAtivo(!"S".equals(rs.getString("enviado")));
 
                 return lembrete;
             }
@@ -167,38 +124,23 @@ public class LembreteDAO {
         } catch (SQLException e) {
             logger.severe("Erro ao buscar lembrete por ID: " + e.getMessage());
             throw new RuntimeException("Erro ao buscar lembrete: " + e.getMessage(), e);
-        } finally {
-            closeResources(rs, stmt, conn);
         }
     }
 
     public Integer create(LembretePessoal lembrete) {
-        // SQL CORRIGIDA - Incluir data_consulta e hora_consulta se existirem na tabela
-        String sql = "INSERT INTO LEMBRETES (data_envio, enviado, mensagem, id_paciente, id_consulta) " +
-                "VALUES (SYSDATE, 'N', ?, ?, ?)";
+        String sql = "INSERT INTO LEMBRETES (data_envio, enviado, mensagem, id_paciente, id_consulta) VALUES (SYSDATE, 'N', ?, ?, ?)";
 
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet generatedKeys = null;
-
-        try {
-            conn = DatabaseConfig.getConnection();
-            stmt = conn.prepareStatement(sql, new String[]{"id_lembrete"});
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql, new String[]{"id_lembrete"})) {
 
             stmt.setString(1, lembrete.getTitulo());
             stmt.setInt(2, lembrete.getIdPaciente());
-
-            // ID da consulta (pode ser null) - usando 1 como padrão
-            if (lembrete.getId() != null) {
-                stmt.setInt(3, lembrete.getId());
-            } else {
-                stmt.setInt(3, 1);
-            }
+            stmt.setInt(3, lembrete.getId() != null ? lembrete.getId() : 1);
 
             int rowsAffected = stmt.executeUpdate();
 
             if (rowsAffected > 0) {
-                generatedKeys = stmt.getGeneratedKeys();
+                ResultSet generatedKeys = stmt.getGeneratedKeys();
                 if (generatedKeys != null && generatedKeys.next()) {
                     int idGerado = generatedKeys.getInt(1);
                     logger.info("Lembrete criado com ID: " + idGerado);
@@ -212,24 +154,17 @@ public class LembreteDAO {
         } catch (SQLException e) {
             logger.severe("Erro ao criar lembrete: " + e.getMessage());
             throw new RuntimeException("Erro ao criar lembrete: " + e.getMessage(), e);
-        } finally {
-            closeResources(generatedKeys, stmt, conn);
         }
     }
 
     public boolean update(LembretePessoal lembrete) {
         String sql = "UPDATE LEMBRETES SET mensagem = ?, enviado = ? WHERE id_lembrete = ?";
 
-        Connection conn = null;
-        PreparedStatement stmt = null;
-
-        try {
-            conn = DatabaseConfig.getConnection();
-            stmt = conn.prepareStatement(sql);
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, lembrete.getTitulo());
-            // CORRIGIDO: Inverter lógica do ativo/enviado
-            stmt.setString(2, lembrete.getAtivo() ? "N" : "S"); // Ativo = Não enviado
+            stmt.setString(2, lembrete.getAtivo() ? "N" : "S");
             stmt.setInt(3, lembrete.getId());
 
             int rowsAffected = stmt.executeUpdate();
@@ -239,20 +174,15 @@ public class LembreteDAO {
         } catch (SQLException e) {
             logger.severe("Erro ao atualizar lembrete: " + e.getMessage());
             throw new RuntimeException("Erro ao atualizar lembrete: " + e.getMessage(), e);
-        } finally {
-            closeResources(null, stmt, conn);
         }
     }
 
     public boolean delete(Integer lembreteId, Integer pacienteId) {
         String sql = "DELETE FROM LEMBRETES WHERE id_lembrete = ? AND id_paciente = ?";
 
-        Connection conn = null;
-        PreparedStatement stmt = null;
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-        try {
-            conn = DatabaseConfig.getConnection();
-            stmt = conn.prepareStatement(sql);
             stmt.setInt(1, lembreteId);
             stmt.setInt(2, pacienteId);
 
@@ -263,27 +193,19 @@ public class LembreteDAO {
         } catch (SQLException e) {
             logger.severe("Erro ao deletar lembrete: " + e.getMessage());
             throw new RuntimeException("Erro ao deletar lembrete: " + e.getMessage(), e);
-        } finally {
-            closeResources(null, stmt, conn);
         }
     }
 
     public List<LembreteResponseDTO> buscarAtivosPorPaciente(Integer pacienteId) {
-        String sql = "SELECT id_lembrete, mensagem as titulo, data_envio, enviado, " +
-                "id_paciente, id_consulta " +
-                "FROM LEMBRETES " +
-                "WHERE id_paciente = ? AND enviado = 'N' ORDER BY data_envio DESC";
+        String sql = "SELECT id_lembrete, mensagem as titulo, data_envio, enviado, id_paciente, id_consulta FROM LEMBRETES WHERE id_paciente = ? AND enviado = 'N' ORDER BY data_envio DESC";
 
         List<LembreteResponseDTO> lembretes = new ArrayList<>();
-        Connection conn = null;
-        PreparedStatement stmt = null;
-        ResultSet rs = null;
 
-        try {
-            conn = DatabaseConfig.getConnection();
-            stmt = conn.prepareStatement(sql);
+        try (Connection conn = DatabaseConfig.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             stmt.setInt(1, pacienteId);
-            rs = stmt.executeQuery();
+            ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {
                 LembreteResponseDTO dto = new LembreteResponseDTO();
@@ -292,22 +214,17 @@ public class LembreteDAO {
                 dto.setNomeMedico("Dr. João Silva");
                 dto.setEspecialidade("Clínico Geral");
 
-                // Data
                 java.sql.Date dataSql = rs.getDate("data_envio");
-                if (dataSql != null) {
-                    dto.setDataConsulta(dataSql.toLocalDate());
-                } else {
-                    dto.setDataConsulta(LocalDate.now());
-                }
+                dto.setDataConsulta(dataSql != null ? dataSql.toLocalDate() : LocalDate.now());
 
-                // Hora
                 dto.setHoraConsulta(LocalTime.of(12, 0));
                 dto.setLocalConsulta("Consultório");
                 dto.setObservacoes("Lembrete de consulta");
-                dto.setConcluido(false); // Ativos não estão concluídos
+                dto.setConcluido(false);
                 dto.setUsuarioId(rs.getInt("id_paciente"));
-                dto.setDataCriacao(rs.getTimestamp("data_envio") != null ?
-                        rs.getTimestamp("data_envio").toString() : LocalDate.now().toString());
+
+                Timestamp dataCriacao = rs.getTimestamp("data_envio");
+                dto.setDataCriacao(dataCriacao != null ? dataCriacao.toString() : LocalDate.now().toString());
 
                 lembretes.add(dto);
             }
@@ -317,18 +234,6 @@ public class LembreteDAO {
         } catch (SQLException e) {
             logger.severe("Erro ao buscar lembretes ativos: " + e.getMessage());
             throw new RuntimeException("Erro ao buscar lembretes ativos: " + e.getMessage(), e);
-        } finally {
-            closeResources(rs, stmt, conn);
-        }
-    }
-
-    private void closeResources(ResultSet rs, Statement stmt, Connection conn) {
-        try {
-            if (rs != null) rs.close();
-            if (stmt != null) stmt.close();
-            if (conn != null) conn.close();
-        } catch (SQLException e) {
-            logger.warning("Erro ao fechar recursos: " + e.getMessage());
         }
     }
 }

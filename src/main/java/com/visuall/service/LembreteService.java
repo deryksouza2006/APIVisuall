@@ -9,35 +9,33 @@ import com.visuall.model.dto.LembreteResponseDTO;
 import com.visuall.model.dto.EspecialistaDTO;
 import com.visuall.model.dto.LocalAtendimentoDTO;
 import com.visuall.exception.BusinessException;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.time.LocalTime;
 import java.util.List;
 
-
+@ApplicationScoped
 public class LembreteService {
 
+    @Inject
+    LembreteDAO lembreteDAO;
 
-    LembreteDAO lembreteDAO = new LembreteDAO(); // Instância direta
-
-
-    UsuarioDAO usuarioDAO = new UsuarioDAO();
+    @Inject
+    UsuarioDAO usuarioDAO;
 
     public List<LembreteResponseDTO> listarPorUsuario(Integer usuarioId) {
-        // Verificar se usuário existe
         Usuario usuario = usuarioDAO.findById(usuarioId);
         if (usuario == null) {
             throw new BusinessException("Usuário não encontrado");
         }
-
         return lembreteDAO.readByPacienteId(usuarioId);
     }
 
     public List<LembreteResponseDTO> listarAtivosPorUsuario(Integer usuarioId) {
-        // Verificar se usuário existe
         Usuario usuario = usuarioDAO.findById(usuarioId);
         if (usuario == null) {
             throw new BusinessException("Usuário não encontrado");
         }
-
         return lembreteDAO.buscarAtivosPorPaciente(usuarioId);
     }
 
@@ -50,7 +48,6 @@ public class LembreteService {
     }
 
     public LembreteResponseDTO criarLembrete(LembreteRequestDTO request) {
-        // Validar dados
         if (request.getNomeMedico() == null || request.getNomeMedico().trim().isEmpty()) {
             throw new BusinessException("Nome do médico é obrigatório");
         }
@@ -58,7 +55,6 @@ public class LembreteService {
             throw new BusinessException("Data da consulta é obrigatória");
         }
 
-        // Converter DTO para entidade
         LembretePessoal lembrete = new LembretePessoal();
         lembrete.setTitulo("Consulta com " + request.getNomeMedico());
         lembrete.setDataCompromisso(request.getDataConsulta());
@@ -67,41 +63,34 @@ public class LembreteService {
         lembrete.setIdPaciente(request.getUsuarioId());
         lembrete.setAtivo(true);
 
-        // Salvar no banco
         Integer id = lembreteDAO.create(lembrete);
         if (id == -1) {
             throw new BusinessException("Erro ao criar lembrete");
         }
 
-        // Buscar o lembrete criado
         return lembreteDAO.readByIdDTO(id);
     }
 
     public LembreteResponseDTO atualizarLembrete(Integer id, LembreteRequestDTO request) {
-        // Verificar se lembrete existe
         LembretePessoal lembreteExistente = lembreteDAO.readById(id);
         if (lembreteExistente == null) {
             throw new BusinessException("Lembrete não encontrado");
         }
 
-        // Atualizar dados
         lembreteExistente.setTitulo("Consulta com " + request.getNomeMedico());
         lembreteExistente.setDataCompromisso(request.getDataConsulta());
         lembreteExistente.setHoraCompromisso(LocalTime.parse(request.getHoraConsulta() + ":00"));
         lembreteExistente.setObservacoes(request.getObservacoes());
 
-        // Salvar atualização
         boolean atualizado = lembreteDAO.update(lembreteExistente);
         if (!atualizado) {
             throw new BusinessException("Erro ao atualizar lembrete");
         }
 
-        // Buscar o lembrete atualizado
         return lembreteDAO.readByIdDTO(id);
     }
 
     public void excluirLembrete(Integer id) {
-        // Verificar se lembrete existe
         LembretePessoal lembrete = lembreteDAO.readById(id);
         if (lembrete == null) {
             throw new BusinessException("Lembrete não encontrado");
@@ -114,13 +103,11 @@ public class LembreteService {
     }
 
     public void marcarComoConcluido(Integer id) {
-        // Verificar se lembrete existe
         LembretePessoal lembrete = lembreteDAO.readById(id);
         if (lembrete == null) {
             throw new BusinessException("Lembrete não encontrado");
         }
 
-        // Marcar como concluído (inativo)
         lembrete.setAtivo(false);
         boolean atualizado = lembreteDAO.update(lembrete);
         if (!atualizado) {
@@ -128,7 +115,6 @@ public class LembreteService {
         }
     }
 
-    // Métodos para listas fixas (mantidos como estão)
     public List<EspecialistaDTO> listarEspecialistas() {
         return List.of(
                 criarEspecialista(1, "Dr. João Silva", "Cardiologia"),

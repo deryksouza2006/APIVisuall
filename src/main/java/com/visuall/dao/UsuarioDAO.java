@@ -73,7 +73,7 @@ public class UsuarioDAO {
     }
 
     public Integer create(Usuario usuario) {
-        String sql = "INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO usuarios (nome, email, senha, ativo, data_criacao) VALUES (?, ?, ?, 'S', SYSDATE)";
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, new String[]{"id"})) {

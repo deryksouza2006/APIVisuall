@@ -1,28 +1,29 @@
 package com.visuall.controller;
 
 import com.visuall.service.AuthService;
-import com.visuall.model.dto.*;
-import jakarta.inject.Inject;
+// REMOVA: import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
-@Path("/api/auth")
+@Path("/auth")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class AuthController {
 
-    @Inject
-    AuthService authService;
+    // REMOVA: @Inject
+    AuthService authService = new AuthService(); // Instância direta
 
     @POST
     @Path("/login")
     public Response login(LoginRequest request) {
         try {
-            AuthResponse response = authService.login(request.email, request.senha);
+            var response = authService.login(request.getEmail(), request.getSenha());
             return Response.ok(response).build();
         } catch (Exception e) {
-            return Response.status(401).entity(new ErrorResponse(e.getMessage())).build();
+            return Response.status(Response.Status.UNAUTHORIZED)
+                    .entity(new ErrorResponse(e.getMessage()))
+                    .build();
         }
     }
 
@@ -30,11 +31,32 @@ public class AuthController {
     @Path("/register")
     public Response register(RegisterRequest request) {
         try {
-            AuthResponse response = authService.register(request.nome, request.email, request.senha);
-            return Response.status(201).entity(response).build();
+            var response = authService.register(request.getNome(), request.getEmail(), request.getSenha());
+            return Response.ok(response).build();
         } catch (Exception e) {
-            return Response.status(400).entity(new ErrorResponse(e.getMessage())).build();
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse(e.getMessage()))
+                    .build();
         }
+    }
+
+    // Classes internas para os requests
+    public static class LoginRequest {
+        public String email;
+        public String senha;
+
+        public String getEmail() { return email; }
+        public String getSenha() { return senha; }
+    }
+
+    public static class RegisterRequest {
+        public String nome;
+        public String email;
+        public String senha;
+
+        public String getNome() { return nome; }
+        public String getEmail() { return email; }
+        public String getSenha() { return senha; }
     }
 
     public static class ErrorResponse {

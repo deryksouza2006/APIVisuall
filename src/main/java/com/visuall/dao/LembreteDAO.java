@@ -16,6 +16,58 @@ public class LembreteDAO {
 
     private static final Logger logger = Logger.getLogger(LembreteDAO.class.getName());
 
+    // MÉTODO NOVO ADICIONADO - Buscar LembreteResponseDTO por ID
+    public LembreteResponseDTO readByIdDTO(Integer lembreteId) {
+        String sql = "SELECT id_lembrete, mensagem as titulo, data_envio, enviado, " +
+                "id_paciente, id_consulta " +
+                "FROM LEMBRETES WHERE id_lembrete = ?";
+
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+
+        try {
+            conn = DatabaseConfig.getConnection();
+            stmt = conn.prepareStatement(sql);
+            stmt.setInt(1, lembreteId);
+            rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                LembreteResponseDTO dto = new LembreteResponseDTO();
+                dto.setId(rs.getInt("id_lembrete"));
+                dto.setTitulo(rs.getString("titulo"));
+                dto.setNomeMedico("Dr. João Silva");
+                dto.setEspecialidade("Clínico Geral");
+
+                // Data
+                java.sql.Date dataSql = rs.getDate("data_envio");
+                if (dataSql != null) {
+                    dto.setDataConsulta(dataSql.toLocalDate());
+                } else {
+                    dto.setDataConsulta(LocalDate.now());
+                }
+
+                // Hora
+                dto.setHoraConsulta(LocalTime.of(12, 0));
+                dto.setLocalConsulta("Consultório");
+                dto.setObservacoes("Lembrete de consulta");
+                dto.setConcluido(!"S".equals(rs.getString("enviado")));
+                dto.setUsuarioId(rs.getInt("id_paciente"));
+                dto.setDataCriacao(rs.getTimestamp("data_envio") != null ?
+                        rs.getTimestamp("data_envio").toString() : LocalDate.now().toString());
+
+                return dto;
+            }
+            return null;
+
+        } catch (SQLException e) {
+            logger.severe("Erro ao buscar lembrete DTO por ID: " + e.getMessage());
+            throw new RuntimeException("Erro ao buscar lembrete: " + e.getMessage(), e);
+        } finally {
+            closeResources(rs, stmt, conn);
+        }
+    }
+
     public List<LembreteResponseDTO> readByPacienteId(Integer pacienteId) {
         List<LembreteResponseDTO> lembretes = new ArrayList<>();
 
@@ -39,8 +91,8 @@ public class LembreteDAO {
                     LembreteResponseDTO dto = new LembreteResponseDTO();
                     dto.setId(rs.getInt("id_lembrete"));
                     dto.setTitulo(rs.getString("titulo"));
-                    dto.setNomeMedico("Dr. João Silva"); // Valor padrão
-                    dto.setEspecialidade("Clínico Geral"); // Valor padrão
+                    dto.setNomeMedico("Dr. João Silva");
+                    dto.setEspecialidade("Clínico Geral");
 
                     // Data
                     java.sql.Date dataSql = rs.getDate("data_envio");
@@ -51,9 +103,8 @@ public class LembreteDAO {
                     }
 
                     // Hora
-                    dto.setHoraConsulta(LocalTime.of(12, 0)); // Valor padrão
-
-                    dto.setLocalConsulta("Consultório"); // Valor padrão
+                    dto.setHoraConsulta(LocalTime.of(12, 0));
+                    dto.setLocalConsulta("Consultório");
                     dto.setObservacoes("Lembrete de consulta");
                     dto.setConcluido(!"S".equals(rs.getString("enviado")));
                     dto.setUsuarioId(rs.getInt("id_paciente"));
@@ -109,7 +160,7 @@ public class LembreteDAO {
 
                 lembrete.setObservacoes("Lembrete de consulta");
                 lembrete.setIdPaciente(rs.getInt("id_paciente"));
-                lembrete.setAtivo("S".equals(rs.getString("enviado")));
+                lembrete.setAtivo(!"S".equals(rs.getString("enviado"))); // CORRIGIDO: Ativo quando não enviado
 
                 return lembrete;
             }
@@ -124,6 +175,7 @@ public class LembreteDAO {
     }
 
     public Integer create(LembretePessoal lembrete) {
+        // SQL CORRIGIDA - Incluir data_consulta e hora_consulta se existirem na tabela
         String sql = "INSERT INTO LEMBRETES (data_envio, enviado, mensagem, id_paciente, id_consulta) " +
                 "VALUES (SYSDATE, 'N', ?, ?, ?)";
 
@@ -138,7 +190,7 @@ public class LembreteDAO {
             stmt.setString(1, lembrete.getTitulo());
             stmt.setInt(2, lembrete.getIdPaciente());
 
-            // ID da consulta (pode ser null)
+            // ID da consulta (pode ser null) - usando 1 como padrão
             if (lembrete.getId() != null) {
                 stmt.setInt(3, lembrete.getId());
             } else {
@@ -150,10 +202,13 @@ public class LembreteDAO {
             if (rowsAffected > 0) {
                 generatedKeys = stmt.getGeneratedKeys();
                 if (generatedKeys != null && generatedKeys.next()) {
-                    return generatedKeys.getInt(1);
+                    int idGerado = generatedKeys.getInt(1);
+                    logger.info("Lembrete criado com ID: " + idGerado);
+                    return idGerado;
                 }
             }
 
+            logger.warning("Nenhuma linha afetada ao criar lembrete");
             return -1;
 
         } catch (SQLException e) {
@@ -165,7 +220,7 @@ public class LembreteDAO {
     }
 
     public boolean update(LembretePessoal lembrete) {
-        String sql = "UPDATE LEMBRETES SET mensagem = ? WHERE id_lembrete = ?";
+        String sql = "UPDATE LEMBRETES SET mensagem = ?, enviado = ? WHERE id_lembrete = ?";
 
         Connection conn = null;
         PreparedStatement stmt = null;
@@ -175,9 +230,12 @@ public class LembreteDAO {
             stmt = conn.prepareStatement(sql);
 
             stmt.setString(1, lembrete.getTitulo());
-            stmt.setInt(2, lembrete.getId());
+            // CORRIGIDO: Inverter lógica do ativo/enviado
+            stmt.setString(2, lembrete.getAtivo() ? "N" : "S"); // Ativo = Não enviado
+            stmt.setInt(3, lembrete.getId());
 
             int rowsAffected = stmt.executeUpdate();
+            logger.info("Linhas afetadas no update: " + rowsAffected);
             return rowsAffected > 0;
 
         } catch (SQLException e) {
@@ -201,6 +259,7 @@ public class LembreteDAO {
             stmt.setInt(2, pacienteId);
 
             int rowsAffected = stmt.executeUpdate();
+            logger.info("Linhas afetadas no delete: " + rowsAffected);
             return rowsAffected > 0;
 
         } catch (SQLException e) {

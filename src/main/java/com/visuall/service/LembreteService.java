@@ -11,7 +11,6 @@ import com.visuall.model.dto.LocalAtendimentoDTO;
 import com.visuall.exception.BusinessException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -45,17 +44,11 @@ public class LembreteService {
     }
 
     public LembreteResponseDTO buscarLembretePorId(Integer id) {
-        LembretePessoal lembrete = lembreteDAO.readById(id);
+        LembreteResponseDTO lembrete = lembreteDAO.readByIdDTO(id);
         if (lembrete == null) {
             throw new BusinessException("Lembrete não encontrado");
         }
-
-        // Buscar na lista e retornar o primeiro que corresponde ao ID
-        return lembreteDAO.readByPacienteId(lembrete.getIdPaciente())
-                .stream()
-                .filter(l -> l.getId().equals(id))
-                .findFirst()
-                .orElseThrow(() -> new BusinessException("Lembrete não encontrado"));
+        return lembrete;
     }
 
     public LembreteResponseDTO criarLembrete(LembreteRequestDTO request) {
@@ -71,7 +64,7 @@ public class LembreteService {
         LembretePessoal lembrete = new LembretePessoal();
         lembrete.setTitulo("Consulta com " + request.getNomeMedico());
         lembrete.setDataCompromisso(request.getDataConsulta());
-        lembrete.setHoraCompromisso(LocalTime.parse(request.getHoraConsulta() + ":00")); // Formatar hora
+        lembrete.setHoraCompromisso(LocalTime.parse(request.getHoraConsulta() + ":00"));
         lembrete.setObservacoes(request.getObservacoes());
         lembrete.setIdPaciente(request.getUsuarioId());
         lembrete.setAtivo(true);
@@ -82,12 +75,8 @@ public class LembreteService {
             throw new BusinessException("Erro ao criar lembrete");
         }
 
-        // Buscar o lembrete criado e converter para ResponseDTO
-        return lembreteDAO.readByPacienteId(request.getUsuarioId())
-                .stream()
-                .filter(l -> l.getId().equals(id))
-                .findFirst()
-                .orElseThrow(() -> new BusinessException("Erro ao recuperar lembrete criado"));
+        // Buscar o lembrete criado
+        return lembreteDAO.readByIdDTO(id);
     }
 
     public LembreteResponseDTO atualizarLembrete(Integer id, LembreteRequestDTO request) {
@@ -100,7 +89,7 @@ public class LembreteService {
         // Atualizar dados
         lembreteExistente.setTitulo("Consulta com " + request.getNomeMedico());
         lembreteExistente.setDataCompromisso(request.getDataConsulta());
-        lembreteExistente.setHoraCompromisso(LocalTime.parse(request.getHoraConsulta() + ":00")); // Formatar hora
+        lembreteExistente.setHoraCompromisso(LocalTime.parse(request.getHoraConsulta() + ":00"));
         lembreteExistente.setObservacoes(request.getObservacoes());
 
         // Salvar atualização
@@ -110,11 +99,7 @@ public class LembreteService {
         }
 
         // Buscar o lembrete atualizado
-        return lembreteDAO.readByPacienteId(request.getUsuarioId())
-                .stream()
-                .filter(l -> l.getId().equals(id))
-                .findFirst()
-                .orElseThrow(() -> new BusinessException("Erro ao recuperar lembrete atualizado"));
+        return lembreteDAO.readByIdDTO(id);
     }
 
     public void excluirLembrete(Integer id) {
@@ -145,8 +130,8 @@ public class LembreteService {
         }
     }
 
+    // Métodos para listas fixas (mantidos como estão)
     public List<EspecialistaDTO> listarEspecialistas() {
-        // Retornar lista fixa de especialistas
         return List.of(
                 criarEspecialista(1, "Dr. João Silva", "Cardiologia"),
                 criarEspecialista(2, "Dra. Maria Santos", "Dermatologia"),
@@ -156,7 +141,6 @@ public class LembreteService {
     }
 
     public List<LocalAtendimentoDTO> listarLocais() {
-        // Retornar lista fixa de locais
         return List.of(
                 criarLocal(1, "Hospital Central", "Av. Principal, 1000"),
                 criarLocal(2, "Clínica Saúde Total", "Rua Saúde, 500"),
@@ -164,7 +148,6 @@ public class LembreteService {
         );
     }
 
-    // Métodos auxiliares
     private EspecialistaDTO criarEspecialista(Integer id, String nome, String especialidade) {
         EspecialistaDTO especialista = new EspecialistaDTO();
         especialista.setId(id);

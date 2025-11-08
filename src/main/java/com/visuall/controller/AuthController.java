@@ -7,7 +7,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
-@Path("/auth")
+@Path("/api/auth")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class AuthController {
@@ -19,8 +19,8 @@ public class AuthController {
     @Path("/login")
     public Response login(LoginRequest request) {
         try {
-            // Corrigido: usando getEmail() e getSenha()
-            AuthResponse response = authService.login(request.getEmail(), request.getSenha());
+            // CORREÇÃO: Acesse os campos diretamente (não use getters)
+            AuthResponse response = authService.login(request.email, request.senha);
             return Response.ok(response).build();
         } catch (Exception e) {
             return Response.status(401).entity(new ErrorResponse(e.getMessage())).build();
@@ -31,11 +31,11 @@ public class AuthController {
     @Path("/register")
     public Response register(RegisterRequest request) {
         try {
-            // Corrigido: usando getNome(), getEmail() e getSenha()
+            // CORREÇÃO: Acesse os campos diretamente
             AuthResponse response = authService.register(
-                    request.getNome(),
-                    request.getEmail(),
-                    request.getSenha()
+                    request.nome,
+                    request.email,
+                    request.senha
             );
             return Response.status(201).entity(response).build();
         } catch (Exception e) {

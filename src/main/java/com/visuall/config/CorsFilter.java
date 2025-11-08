@@ -11,13 +11,12 @@ public class CorsFilter implements ContainerResponseFilter {
 
     @Override
     public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext) throws IOException {
-        responseContext.getHeaders().add("Access-Control-Allow-Origin", "*");
-        responseContext.getHeaders().add("Access-Control-Allow-Headers", "origin, content-type, accept, authorization, x-requested-with, access-control-request-method, access-control-request-headers");
-        responseContext.getHeaders().add("Access-Control-Allow-Credentials", "true");
-        responseContext.getHeaders().add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH");
-        responseContext.getHeaders().add("Access-Control-Max-Age", "86400"); // 24 horas
+        responseContext.getHeaders().putSingle("Access-Control-Allow-Origin", "*");
+        responseContext.getHeaders().putSingle("Access-Control-Allow-Headers", "origin, content-type, accept, authorization, x-requested-with");
+        responseContext.getHeaders().putSingle("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD");
+        responseContext.getHeaders().putSingle("Access-Control-Max-Age", "86400");
 
-        // Para requisições OPTIONS (preflight)
+        // Para preflight requests
         if ("OPTIONS".equals(requestContext.getMethod())) {
             responseContext.setStatus(200);
         }

@@ -11,7 +11,7 @@ public class LembretePessoal {
     private LocalDate dataCompromisso;
     private LocalTime horaCompromisso;
     private String observacoes;
-    private boolean ativo;
+    private Boolean ativo;
     private String tipoLembrete;
     private Integer idPaciente;
 
@@ -48,4 +48,8 @@ public class LembretePessoal {
 
     public Integer getIdPaciente() { return idPaciente; }
     public void setIdPaciente(Integer idPaciente) { this.idPaciente = idPaciente; }
+
+    public boolean getAtivo() {
+        return isAtivo();
+    }
 }

@@ -9,19 +9,17 @@ import com.visuall.model.dto.LembreteResponseDTO;
 import com.visuall.model.dto.EspecialistaDTO;
 import com.visuall.model.dto.LocalAtendimentoDTO;
 import com.visuall.exception.BusinessException;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import java.time.LocalTime;
 import java.util.List;
 
-@ApplicationScoped
+
 public class LembreteService {
 
-    @Inject
-    LembreteDAO lembreteDAO;
 
-    @Inject
-    UsuarioDAO usuarioDAO;
+    LembreteDAO lembreteDAO = new LembreteDAO(); // Instância direta
+
+
+    UsuarioDAO usuarioDAO = new UsuarioDAO();
 
     public List<LembreteResponseDTO> listarPorUsuario(Integer usuarioId) {
         // Verificar se usuário existe

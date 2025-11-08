@@ -4,15 +4,14 @@ import com.visuall.model.dto.AuthResponse;
 import com.visuall.model.dto.UserDTO;
 import com.visuall.model.Usuario;
 import com.visuall.dao.UsuarioDAO;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
+
 import java.util.UUID;
 
-@ApplicationScoped
+
 public class AuthService {
 
-    @Inject
-    UsuarioDAO usuarioDAO;
+
+    UsuarioDAO usuarioDAO = new UsuarioDAO();
 
     public AuthResponse login(String email, String senha) {
         // Buscar usuário por email (ativo)

@@ -1,84 +1,70 @@
 package com.visuall.controller;
 
 import com.visuall.service.LembreteService;
-import com.visuall.model.dto.LembreteRequestDTO;
-import com.visuall.model.dto.LembreteResponseDTO;
-import com.visuall.model.dto.EspecialistaDTO;
-import com.visuall.model.dto.LocalAtendimentoDTO;
-import com.visuall.exception.BusinessException;
-
-import jakarta.inject.Inject;
+import com.visuall.model.dto.LembreteRequestDTO; // IMPORT ADICIONADO
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
-import java.util.List;
+import java.time.LocalDate;
 
-@Path("/api/lembretes")
+@Path("/lembretes")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class LembreteController {
 
-    @Inject
-    LembreteService lembreteService;
-
-    @GET
-    @Path("/teste")
-    @Produces(MediaType.TEXT_PLAIN)
-    public String teste() {
-        return "✅ API VisuAll funcionando!";
-    }
+    LembreteService lembreteService = new LembreteService();
 
     @GET
     @Path("/usuario/{usuarioId}")
     public Response listarLembretes(@PathParam("usuarioId") Integer usuarioId) {
         try {
-            List<LembreteResponseDTO> lembretes = lembreteService.listarPorUsuario(usuarioId);
+            var lembretes = lembreteService.listarPorUsuario(usuarioId);
             return Response.ok(lembretes).build();
-        } catch (BusinessException e) {
-            return Response.status(400).entity(new ErrorResponse(e.getMessage())).build();
-        }
-    }
-
-    @GET
-    @Path("/usuario/{usuarioId}/ativos")
-    public Response listarLembretesAtivos(@PathParam("usuarioId") Integer usuarioId) {
-        try {
-            List<LembreteResponseDTO> lembretes = lembreteService.listarAtivosPorUsuario(usuarioId);
-            return Response.ok(lembretes).build();
-        } catch (BusinessException e) {
-            return Response.status(400).entity(new ErrorResponse(e.getMessage())).build();
-        }
-    }
-
-    @GET
-    @Path("/{id}")
-    public Response buscarLembretePorId(@PathParam("id") Integer id) {
-        try {
-            LembreteResponseDTO lembrete = lembreteService.buscarLembretePorId(id);
-            return Response.ok(lembrete).build();
-        } catch (BusinessException e) {
-            return Response.status(404).entity(new ErrorResponse(e.getMessage())).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse(e.getMessage()))
+                    .build();
         }
     }
 
     @POST
-    public Response criarLembrete(LembreteRequestDTO request) {
+    public Response criarLembrete(LembreteRequest request) {
         try {
-            LembreteResponseDTO novoLembrete = lembreteService.criarLembrete(request);
-            return Response.status(201).entity(novoLembrete).build();
-        } catch (BusinessException e) {
-            return Response.status(400).entity(new ErrorResponse(e.getMessage())).build();
+            // CONVERTE LembreteRequest para LembreteRequestDTO
+            LembreteRequestDTO requestDTO = new LembreteRequestDTO();
+            requestDTO.setNomeMedico(request.getNomeMedico());
+            requestDTO.setDataConsulta(LocalDate.parse(request.getDataConsulta())); // Converte String para LocalDate
+            requestDTO.setHoraConsulta(request.getHoraConsulta());
+            requestDTO.setObservacoes(request.getObservacoes());
+            requestDTO.setUsuarioId(request.getUsuarioId());
+
+            var lembrete = lembreteService.criarLembrete(requestDTO);
+            return Response.ok(lembrete).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse(e.getMessage()))
+                    .build();
         }
     }
 
     @PUT
     @Path("/{id}")
-    public Response atualizarLembrete(@PathParam("id") Integer id, LembreteRequestDTO request) {
+    public Response atualizarLembrete(@PathParam("id") Integer id, LembreteRequest request) {
         try {
-            LembreteResponseDTO atualizado = lembreteService.atualizarLembrete(id, request);
-            return Response.ok(atualizado).build();
-        } catch (BusinessException e) {
-            return Response.status(400).entity(new ErrorResponse(e.getMessage())).build();
+            // CONVERTE LembreteRequest para LembreteRequestDTO
+            LembreteRequestDTO requestDTO = new LembreteRequestDTO();
+            requestDTO.setNomeMedico(request.getNomeMedico());
+            requestDTO.setDataConsulta(LocalDate.parse(request.getDataConsulta())); // Converte String para LocalDate
+            requestDTO.setHoraConsulta(request.getHoraConsulta());
+            requestDTO.setObservacoes(request.getObservacoes());
+            requestDTO.setUsuarioId(request.getUsuarioId());
+
+            var lembrete = lembreteService.atualizarLembrete(id, requestDTO);
+            return Response.ok(lembrete).build();
+        } catch (Exception e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse(e.getMessage()))
+                    .build();
         }
     }
 
@@ -87,52 +73,31 @@ public class LembreteController {
     public Response excluirLembrete(@PathParam("id") Integer id) {
         try {
             lembreteService.excluirLembrete(id);
-            return Response.ok(new SimpleResponse("Lembrete excluído com sucesso")).build();
-        } catch (BusinessException e) {
-            return Response.status(400).entity(new ErrorResponse(e.getMessage())).build();
-        }
-    }
-
-    @PATCH
-    @Path("/{id}/concluir")
-    public Response marcarComoConcluido(@PathParam("id") Integer id) {
-        try {
-            lembreteService.marcarComoConcluido(id);
-            return Response.ok(new SimpleResponse("Lembrete marcado como concluído")).build();
-        } catch (BusinessException e) {
-            return Response.status(400).entity(new ErrorResponse(e.getMessage())).build();
-        }
-    }
-
-    @GET
-    @Path("/especialistas")
-    public Response listarEspecialistas() {
-        try {
-            List<EspecialistaDTO> especialistas = lembreteService.listarEspecialistas();
-            return Response.ok(especialistas).build();
+            return Response.noContent().build();
         } catch (Exception e) {
-            return Response.status(500).entity(new ErrorResponse("Erro interno")).build();
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(new ErrorResponse(e.getMessage()))
+                    .build();
         }
     }
 
-    @GET
-    @Path("/locais")
-    public Response listarLocais() {
-        try {
-            List<LocalAtendimentoDTO> locais = lembreteService.listarLocais();
-            return Response.ok(locais).build();
-        } catch (Exception e) {
-            return Response.status(500).entity(new ErrorResponse("Erro interno")).build();
-        }
+    // Classe interna do Controller (mantida para receber JSON)
+    public static class LembreteRequest {
+        public String nomeMedico;
+        public String dataConsulta; // Mantém como String para receber do JSON
+        public String horaConsulta;
+        public String observacoes;
+        public Integer usuarioId;
+
+        public String getNomeMedico() { return nomeMedico; }
+        public String getDataConsulta() { return dataConsulta; }
+        public String getHoraConsulta() { return horaConsulta; }
+        public String getObservacoes() { return observacoes; }
+        public Integer getUsuarioId() { return usuarioId; }
     }
 
     public static class ErrorResponse {
         public String error;
         public ErrorResponse(String error) { this.error = error; }
-    }
-
-    public static class SimpleResponse {
-        public String message;
-        public SimpleResponse(String message) { this.message = message; }
     }
 }

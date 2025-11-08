@@ -1,7 +1,6 @@
 package com.visuall.controller;
 
 import com.visuall.service.AuthService;
-// REMOVA: import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -11,8 +10,7 @@ import jakarta.ws.rs.core.Response;
 @Consumes(MediaType.APPLICATION_JSON)
 public class AuthController {
 
-    // REMOVA: @Inject
-    AuthService authService = new AuthService(); // Instância direta
+    AuthService authService = new AuthService();
 
     @POST
     @Path("/login")
@@ -40,7 +38,6 @@ public class AuthController {
         }
     }
 
-    // Classes internas para os requests
     public static class LoginRequest {
         public String email;
         public String senha;

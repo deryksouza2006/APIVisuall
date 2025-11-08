@@ -2,10 +2,8 @@ package com.visuall.dao;
 
 import com.visuall.model.Usuario;
 import com.visuall.config.DatabaseConfig;
-import jakarta.enterprise.context.ApplicationScoped;
 import java.sql.*;
 
-@ApplicationScoped
 public class UsuarioDAO {
 
     public Usuario findByEmail(String email) {

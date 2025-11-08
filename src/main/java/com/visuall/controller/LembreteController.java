@@ -35,6 +35,7 @@ public class LembreteController {
             requestDTO.setNomeMedico(request.getNomeMedico());
             requestDTO.setDataConsulta(LocalDate.parse(request.getDataConsulta())); // Converte String para LocalDate
             requestDTO.setHoraConsulta(request.getHoraConsulta());
+            requestDTO.setTitulo(request.getTitulo());
             requestDTO.setObservacoes(request.getObservacoes());
             requestDTO.setUsuarioId(request.getUsuarioId());
 
@@ -56,6 +57,7 @@ public class LembreteController {
             requestDTO.setNomeMedico(request.getNomeMedico());
             requestDTO.setDataConsulta(LocalDate.parse(request.getDataConsulta())); // Converte String para LocalDate
             requestDTO.setHoraConsulta(request.getHoraConsulta());
+            requestDTO.setTitulo(request.getTitulo());
             requestDTO.setObservacoes(request.getObservacoes());
             requestDTO.setUsuarioId(request.getUsuarioId());
 
@@ -85,12 +87,14 @@ public class LembreteController {
     public static class LembreteRequest {
         public String nomeMedico;
         public String dataConsulta; // Mantém como String para receber do JSON
+        public String titulo;
         public String horaConsulta;
         public String observacoes;
         public Integer usuarioId;
 
         public String getNomeMedico() { return nomeMedico; }
         public String getDataConsulta() { return dataConsulta; }
+        public String getTitulo() { return titulo; }
         public String getHoraConsulta() { return horaConsulta; }
         public String getObservacoes() { return observacoes; }
         public Integer getUsuarioId() { return usuarioId; }

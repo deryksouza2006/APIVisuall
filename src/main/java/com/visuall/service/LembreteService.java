@@ -50,7 +50,11 @@ public class LembreteService {
         }
 
         LembretePessoal lembrete = new LembretePessoal();
-        lembrete.setTitulo("Consulta com " + request.getNomeMedico());
+        if (request.getTitulo() != null && !request.getTitulo().trim().isEmpty()) {
+            lembrete.setTitulo(request.getTitulo());
+        } else {
+            lembrete.setTitulo("Consulta com " + request.getNomeMedico());
+        }
         lembrete.setDataCompromisso(request.getDataConsulta());
         lembrete.setHoraCompromisso(LocalTime.parse(request.getHoraConsulta() + ":00"));
         lembrete.setObservacoes(request.getObservacoes());

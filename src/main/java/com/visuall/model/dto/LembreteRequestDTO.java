@@ -3,6 +3,7 @@ package com.visuall.model.dto;
 import java.time.LocalDate;
 
 public class LembreteRequestDTO {
+    private String titulo;
     private String nomeMedico;
     private LocalDate dataConsulta; // LocalDate, não String
     private String horaConsulta;
@@ -24,4 +25,7 @@ public class LembreteRequestDTO {
 
     public Integer getUsuarioId() { return usuarioId; }
     public void setUsuarioId(Integer usuarioId) { this.usuarioId = usuarioId; }
+
+    public String getTitulo() { return titulo; }
+    public void setTitulo(String titulo) { this.titulo = titulo; }
 }

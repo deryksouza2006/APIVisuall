@@ -19,7 +19,6 @@ public class AuthController {
     @Path("/login")
     public Response login(LoginRequest request) {
         try {
-            // CORREÇÃO: Acesse os campos diretamente (não use getters)
             AuthResponse response = authService.login(request.email, request.senha);
             return Response.ok(response).build();
         } catch (Exception e) {
@@ -31,12 +30,7 @@ public class AuthController {
     @Path("/register")
     public Response register(RegisterRequest request) {
         try {
-            // CORREÇÃO: Acesse os campos diretamente
-            AuthResponse response = authService.register(
-                    request.nome,
-                    request.email,
-                    request.senha
-            );
+            AuthResponse response = authService.register(request.nome, request.email, request.senha);
             return Response.status(201).entity(response).build();
         } catch (Exception e) {
             return Response.status(400).entity(new ErrorResponse(e.getMessage())).build();

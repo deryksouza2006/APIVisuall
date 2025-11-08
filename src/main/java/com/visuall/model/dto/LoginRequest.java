@@ -1,22 +1,13 @@
 package com.visuall.model.dto;
 
-public class RegisterRequest {
-    public String nome;
+public class LoginRequest {
     public String email;
     public String senha;
 
-    // Construtor padrão
-    public RegisterRequest() {}
+    public LoginRequest() {}
 
-    // Construtor com parâmetros
-    public RegisterRequest(String nome, String email, String senha) {
-        this.nome = nome;
+    public LoginRequest(String email, String senha) {
         this.email = email;
         this.senha = senha;
     }
-
-    // Getters (se quiser usar)
-    public String getNome() { return nome; }
-    public String getEmail() { return email; }
-    public String getSenha() { return senha; }
 }
